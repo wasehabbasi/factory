@@ -1,0 +1,6 @@
+[02-Sep-2025 09:23:15 UTC] PHP Warning:  require(/home2/origamic/factory.origami99.com/Factory/../app/Config/Paths.php): Failed to open stream: No such file or directory in /home2/origamic/factory.origami99.com/Factory/index.php on line 51
+[02-Sep-2025 09:23:15 UTC] PHP Warning:  require(/home2/origamic/factory.origami99.com/Factory/../app/Config/Paths.php): Failed to open stream: No such file or directory in /home2/origamic/factory.origami99.com/Factory/index.php on line 51
+[02-Sep-2025 09:23:15 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home2/origamic/factory.origami99.com/Factory/../app/Config/Paths.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home2/origamic/factory.origami99.com/Factory/index.php:51
+Stack trace:
+#0 {main}
+  thrown in /home2/origamic/factory.origami99.com/Factory/index.php on line 51

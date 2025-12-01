@@ -1,0 +1,116 @@
+:root{
+    --bg:#0b1220;
+    --card:#0f1724;
+    --muted:#9aa6b2;
+    --accent:#dc3545; /* red accent like AdminLTE red */
+    --glass: rgba(255,255,255,0.04);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+    margin:0;
+    font-family:Inter, "Segoe UI", Roboto, system-ui, -apple-system, Arial;
+    background: #fff;
+    color:#e6eef6;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+}
+
+.login-wrap{
+    width:100%;
+    max-width:980px;
+    display:grid;
+    grid-template-columns: 1fr 420px;
+    gap:28px;
+    align-items:center;
+}
+
+/* Left side info */
+.info {
+    padding:36px;
+    border-radius:16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+}
+.info h2{margin:0 0 8px 0; font-size:28px; color:#000}
+.info p{color:var(--muted); line-height:1.6}
+.features{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap}
+.feature{
+    background:var(--glass);
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.02);
+    font-size:14px;
+    color:var(--muted);
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
+.feature i{color:var(--accent); font-size:16px}
+
+/* Card / form */
+.card-login{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:14px;
+    padding:26px;
+    border:1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 10px 40px rgba(2,6,23,0.6);
+}
+
+.brand {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom:12px;
+}
+.logo{
+    width:46px;height:46px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent), #a11d2f);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:white;font-size:18px;box-shadow:0 6px 18px rgba(0,0,0,0.3);
+}
+.brand h3{margin:0;font-size:18px; color: #000;}
+.brand .sub{color:var(--muted);font-size:13px}
+
+.form-control, .form-check-input, .form-select {
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    color:#e6eef6;
+    border-radius:10px;
+    padding:12px 14px;
+    box-shadow:none;
+}
+.form-control:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(220,53,69,0.06)}
+label{font-size:13px;color:var(--muted);margin-bottom:6px}
+
+.input-group .input-group-text{
+    background:transparent;border-left:0;border-radius:0 10px 10px 0;border:0;color:var(--muted)
+}
+
+.btn-primary{
+    background:linear-gradient(90deg,var(--accent), #b93c47);
+    border:0;border-radius:10px;padding:10px 14px;font-weight:600;
+    box-shadow: 0 8px 18px rgba(193,33,44,0.18);
+}
+.btn-outline{
+    border:1px solid rgba(255,255,255,0.04);
+    color:var(--muted);background:transparent;border-radius:10px;padding:10px 14px;
+}
+
+.small-muted{color:var(--muted);font-size:13px;margin-top:10px}
+
+.show-pass-btn{
+    background:transparent;border:0;color:var(--muted);cursor:pointer;padding:6px 8px;border-radius:8px;
+}
+
+/* responsive */
+@media (max-width: 1000px){
+    .login-wrap{grid-template-columns: 1fr; padding:12px}
+    .info{order:2}
+    .card-login{order:1}
+}

@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inventory Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/app.css">
+  <!-- public/assets/app.css -->
+<style>
+:root{
+  --sidebar-bg:#111827; /* slate-900 */
+  --sidebar-accent:#1f2937; /* slate-800 */
+  --sidebar-text:#e5e7eb; /* gray-200 */
+  --primary:#2563eb; /* blue-600 */
+}
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b1220;color:#e5e7eb;margin:0}
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{background:var(--sidebar-bg);border-right:1px solid #1f2937;position:sticky;top:0;height:100vh;padding:14px}
+.brand{font-weight:800;letter-spacing:.08em;margin:6px 6px 16px 6px;font-size:20px;color:#fff}
+.menu{display:flex;flex-direction:column;gap:6px}
+.menu-label{padding:10px 10px 4px 10px;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em}
+.menu-item{padding:10px 12px;border-radius:10px;color:var(--sidebar-text);text-decoration:none;display:block}
+.menu-item:hover{background:var(--sidebar-accent)}
+.menu-item.active{background:linear-gradient(90deg,#1f2937,#0b1220);border:1px solid #374151}
+.content{background:linear-gradient(180deg,#0b1220,#0a0f1a);}
+.topbar{background:#0f172a;border-bottom:1px solid #1f2937;padding:12px 16px;position:sticky;top:0;z-index:50}
+.card{background:#0f172a;border:1px solid #1f2937;border-radius:16px;color:#e5e7eb}
+.table{color:#cbd5e1}
+.table thead th{color:#93c5fd}
+.btn-primary{background:var(--primary);border-color:var(--primary)}
+.form-control, .form-select{background:#0b1220;color:#e5e7eb;border:1px solid #1f2937}
+.form-control:focus, .form-select:focus{border-color:#2563eb;box-shadow:none}
+@media (max-width: 992px){
+  .layout{grid-template-columns: 1fr}
+  .sidebar{position:fixed;left:-280px;width:260px;z-index:1000;transition:all .2s ease}
+  .sidebar.open{left:0}
+}
+</style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">IMS</div>
+      <nav class="menu">
+        <a href="#dashboard" class="menu-item active">Dashboard</a>
+        <div class="menu-label">Master Data</div>
+        <a href="#vendors" class="menu-item">Vendors</a>
+        <a href="#warehouses" class="menu-item">Warehouses</a>
+        <a href="#factories" class="menu-item">Factories</a>
+        <a href="#products" class="menu-item">Products</a>
+        <div class="menu-label">Operations</div>
+        <a href="#purchases" class="menu-item">Purchases</a>
+        <a href="#expenses" class="menu-item">Expenses & Salaries</a>
+        <a href="#invoices" class="menu-item">Invoices (PDF)</a>
+        <div class="menu-label">Reports</div>
+        <a href="#balance" class="menu-item">Balance Sheet</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <header class="topbar d-flex align-items-center justify-content-between">
+        <button id="toggleSidebar" class="btn btn-sm btn-outline-light d-lg-none">☰</button>
+        <h1 class="h4 m-0">Inventory Management</h1>
+        <div class="user">Admin</div>
+      </header>
+
+      <section id="view" class="p-3 p-md-4"></section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.8/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
+
+<!-- public/assets/app.js -->
+<script>
+const API_BASE = '../api';
+
+// Sidebar toggle for mobile
+const toggleBtn = document.getElementById('toggleSidebar');
+const sidebar = document.querySelector('.sidebar');
+if (toggleBtn) toggleBtn.addEventListener('click', ()=> sidebar.classList.toggle('open'));
+
+// Simple SPA Router
+const routes = {
+  '#dashboard': renderDashboard,
+  '#vendors': renderVendors,
+  '#warehouses': renderWarehouses,
+  '#factories': () => renderCRUDStub('Factories coming next…'),
+  '#products': () => renderCRUDStub('Products coming next…'),
+  '#purchases': () => renderCRUDStub('Purchases flow coming next…'),
+  '#expenses': () => renderCRUDStub('Expenses & Salaries coming next…'),
+  '#invoices': renderInvoices,
+  '#balance': () => renderCRUDStub('Balance Sheet coming next…'),
+};
+
+function setActive(link){
+  document.querySelectorAll('.menu-item').forEach(a=>a.classList.remove('active'));
+  const el = document.querySelector(`.menu a[href="${link}"]`);
+  if (el) el.classList.add('active');
+}
+
+window.addEventListener('hashchange', () => render(window.location.hash || '#dashboard'));
+window.addEventListener('load', () => render(window.location.hash || '#dashboard'));
+
+async function render(hash){
+  setActive(hash);
+  const view = document.getElementById('view');
+  const fn = routes[hash] || renderDashboard;
+  view.innerHTML = '<div class="text-center p-5">Loading…</div>';
+  await fn(view);
+}
+
+// ------------ Views -------------
+async function renderDashboard(root){
+  root.innerHTML = `
+    <div class="row g-3">
+      <div class="col-md-3"><div class="card p-3"><div class="small text-secondary">Vendors</div><div id="statVendors" class="h3">—</div></div></div>
+      <div class="col-md-3"><div class="card p-3"><div class="small text-secondary">Warehouses</div><div id="statWarehouses" class="h3">—</div></div></div>
+      <div class="col-md-3"><div class="card p-3"><div class="small text-secondary">Products</div><div id="statProducts" class="h3">—</div></div></div>
+      <div class="col-md-3"><div class="card p-3"><div class="small text-secondary">Invoices (Total)</div><div id="statInvoices" class="h3">—</div></div></div>
+    </div>
+  `;
+  try {
+    const [v, w] = await Promise.all([
+      axios.get(`${API_BASE}/vendors.php`),
+      axios.get(`${API_BASE}/warehouses.php`)
+    ]);
+    document.getElementById('statVendors').textContent = v.data.data.length;
+    document.getElementById('statWarehouses').textContent = w.data.data.length;
+    document.getElementById('statProducts').textContent = '—';
+    document.getElementById('statInvoices').textContent = '—';
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+function renderCRUDStub(text){
+  const root = document.getElementById('view');
+  root.innerHTML = `<div class="card p-4">${text}<br/><span class="text-secondary">(Use the PHP API pattern from Vendors/Warehouses to finish.)</span></div>`
+}
+
+// Vendors View
+async function renderVendors(root){
+  root.innerHTML = `
+  <div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 m-0">Vendors</h2>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#vendorModal">Add Vendor</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-dark table-striped align-middle">
+        <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Address</th><th>Image</th><th>Actions</th></tr></thead>
+        <tbody id="vendorsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="vendorModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content bg-light text-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="vendorModalLabel">Add Vendor</h5>
+          <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="vendorForm" class="vstack gap-2">
+            <input type="hidden" name="id"/>
+            <div class="row g-2">
+              <div class="col-md-6"><label class="form-label">Name</label><input name="name" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Phone</label><input name="phone" class="form-control"></div>
+              <div class="col-12"><label class="form-label">Address</label><input name="address" class="form-control"></div>
+              <div class="col-12"><label class="form-label">Image URL (optional)</label><input name="image_url" class="form-control"></div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button id="saveVendorBtn" type="button" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+
+  const tb = document.getElementById('vendorsTbody');
+  await loadVendors();
+
+  async function loadVendors(){
+    const res = await axios.get(`${API_BASE}/vendors.php`);
+    tb.innerHTML = res.data.data.map((v,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${v.name}</td>
+        <td>${v.phone||''}</td>
+        <td>${v.address||''}</td>
+        <td>${v.image_url?`<img src="${v.image_url}" style="height:32px;border-radius:6px">`:''}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-light" data-id="${v.id}" data-action="edit">Edit</button>
+          <button class="btn btn-sm btn-outline-danger" data-id="${v.id}" data-action="delete">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  tb.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const id = btn.getAttribute('data-id');
+    const action = btn.getAttribute('data-action');
+    if(action==='delete'){
+      if(confirm('Delete this vendor?')){
+        await axios.delete(`${API_BASE}/vendors.php?id=${id}`);
+        await loadVendors();
+      }
+    }
+    if(action==='edit'){
+      const item = (await axios.get(`${API_BASE}/vendors.php?id=${id}`)).data.data;
+      const form = document.getElementById('vendorForm');
+      form.id.value = item.id;
+      form.name.value = item.name;
+      form.phone.value = item.phone||'';
+      form.address.value = item.address||'';
+      form.image_url.value = item.image_url||'';
+      document.getElementById('vendorModalLabel').textContent = 'Edit Vendor';
+      new bootstrap.Modal(document.getElementById('vendorModal')).show();
+    }
+  });
+
+  document.getElementById('saveVendorBtn').addEventListener('click', async ()=>{
+    const form = document.getElementById('vendorForm');
+    const payload = Object.fromEntries(new FormData(form).entries());
+    if(payload.id){
+      await axios.put(`${API_BASE}/vendors.php`, payload);
+    } else {
+      await axios.post(`${API_BASE}/vendors.php`, payload);
+    }
+    bootstrap.Modal.getInstance(document.getElementById('vendorModal')).hide();
+    form.reset();
+    document.getElementById('vendorModalLabel').textContent = 'Add Vendor';
+    await loadVendors();
+  });
+
+  // bootstrap modal dependency (loaded after view so it exists)
+  if (!window.bootstrap) {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
+    document.body.appendChild(s);
+  }
+}
+
+// Warehouses View
+async function renderWarehouses(root){
+  root.innerHTML = `
+  <div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 m-0">Warehouses</h2>
+      <div class="input-group" style="max-width:520px;">
+        <input id="whAddress" class="form-control" placeholder="Warehouse address"/>
+        <button id="addWhBtn" class="btn btn-primary">Add</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-dark table-striped align-middle">
+        <thead><tr><th>#</th><th>Address</th><th>Actions</th></tr></thead>
+        <tbody id="whTbody"></tbody>
+      </table>
+    </div>
+  </div>`;
+
+  const tb = document.getElementById('whTbody');
+  const input = document.getElementById('whAddress');
+
+  async function load(){
+    const res = await axios.get(`${API_BASE}/warehouses.php`);
+    tb.innerHTML = res.data.data.map((w,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${w.address}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-light" data-id="${w.id}" data-action="edit">Edit</button>
+          <button class="btn btn-sm btn-outline-danger" data-id="${w.id}" data-action="delete">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+  load();
+
+  document.getElementById('addWhBtn').addEventListener('click', async ()=>{
+    const addr = input.value.trim();
+    if(!addr) return alert('Enter address');
+    await axios.post(`${API_BASE}/warehouses.php`, { address: addr });
+    input.value='';
+    load();
+  });
+
+  tb.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const id = btn.getAttribute('data-id');
+    const action = btn.getAttribute('data-action');
+    if(action==='delete'){
+      if(confirm('Delete this warehouse?')){
+        await axios.delete(`${API_BASE}/warehouses.php?id=${id}`);
+        load();
+      }
+    }
+    if(action==='edit'){
+      const row = btn.closest('tr');
+      const current = row.children[1].textContent;
+      const updated = prompt('Edit address:', current);
+      if(updated && updated!==current){
+        await axios.put(`${API_BASE}/warehouses.php`, { id, address: updated });
+        load();
+      }
+    }
+  });
+}
+
+// Invoices (PDF demo)
+async function renderInvoices(root){
+  root.innerHTML = `
+  <div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 m-0">Invoices</h2>
+      <button id="makePdf" class="btn btn-primary">Generate Sample PDF</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-dark table-striped align-middle">
+        <thead><tr><th>#</th><th>Date</th><th>Factory</th><th>Total</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>2025-08-26</td><td>Demo Factory</td><td>1200.00</td><td><button class="btn btn-sm btn-outline-light">View</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  document.getElementById('makePdf').addEventListener('click', ()=>{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Invoice', 14, 18);
+    doc.setFontSize(10);
+    doc.text('Factory: Demo Factory', 14, 26);
+    doc.text('Date: 2025-08-26', 14, 32);
+    doc.autoTable({
+      startY: 38,
+      head: [['#','Product','Qty','Price','Total']],
+      body: [
+        ['1','Item A','2','500.00','1000.00'],
+        ['2','Item B','1','200.00','200.00']
+      ],
+      theme: 'striped'
+    });
+    doc.text('Subtotal: 1200.00', 150, doc.lastAutoTable.finalY + 10);
+    doc.save('invoice.pdf');
+  });
+}
+</script>
